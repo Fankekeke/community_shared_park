@@ -21,8 +21,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,6 +52,8 @@ public class ParkOrderInfoController {
 
     private final IVehicleInfoService vehicleInfoService;
 
+    private final IPunishmentInfoService punishmentInfoService;
+
     /**
      * 分页获取订单信息
      *
@@ -63,6 +64,40 @@ public class ParkOrderInfoController {
     @GetMapping("/page")
     public R page(Page<ParkOrderInfo> page, ParkOrderInfo parkOrderInfo) {
         return R.ok(parkOrderInfoService.selectOrderPage(page, parkOrderInfo));
+    }
+
+    /**
+     * 查询空闲车位
+     *
+     * @return 结果
+     */
+    @GetMapping("/queryParkByArea")
+    public R queryParkByArea() {
+        List<SpaceInfo> spaceInfoList = spaceInfoService.list();
+        List<SpaceStatusInfo> spaceStatusInfoList = spaceStatusInfoService.list();
+        Map<Integer, String> statusMap = spaceStatusInfoList.stream().collect(Collectors.toMap(SpaceStatusInfo::getSpaceId, SpaceStatusInfo::getStatus));
+        for (SpaceInfo spaceInfo : spaceInfoList) {
+            spaceInfo.setStatus(statusMap.get(spaceInfo.getId()));
+        }
+        // 按area分组统计
+        Map<String, Long> totalByArea = spaceInfoList.stream()
+                .collect(Collectors.groupingBy(SpaceInfo::getArea, Collectors.counting()));
+
+        // 统计每个area的空闲车位数（status为"0"表示空闲）
+        Map<String, Long> freeByArea = spaceInfoList.stream()
+                .filter(space -> "0".equals(space.getStatus()))
+                .collect(Collectors.groupingBy(SpaceInfo::getArea, Collectors.counting()));
+        // 构造返回结果
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (String area : totalByArea.keySet()) {
+            Map<String, Object> areaStat = new HashMap<>();
+            areaStat.put("area", area);
+            areaStat.put("total", totalByArea.get(area));
+            areaStat.put("free", freeByArea.getOrDefault(area, 0L));
+            result.add(areaStat);
+        }
+
+        return R.ok(result);
     }
 
     /**
@@ -80,6 +115,9 @@ public class ParkOrderInfoController {
         // 车辆信息
         VehicleInfo vehicleInfo = vehicleInfoService.getById(orderInfo.getVehicleId());
 
+        // 获取超时费用
+        PunishmentInfo punishmentInfo = punishmentInfoService.getById(1);
+
         // 获取用户会员信息
         UserInfo userInfo = userInfoService.getOne(Wrappers.<UserInfo>lambdaQuery().eq(UserInfo::getId, vehicleInfo.getUserId()));
         List<MemberInfo> memberInfos = memberInfoService.list(Wrappers.<MemberInfo>lambdaQuery().eq(MemberInfo::getUserId, userInfo.getId()));
@@ -96,13 +134,29 @@ public class ParkOrderInfoController {
         // 停车总时常
         long totalTime = DateUtil.between(DateUtil.parseDateTime(orderInfo.getStartDate()), DateUtil.parseDateTime(orderInfo.getEndDate()), DateUnit.MINUTE);
         orderInfo.setTotalTime(BigDecimal.valueOf(totalTime));
+
         // 总价格
         if (isMember) {
             orderInfo.setTotalPrice(BigDecimal.ZERO);
             orderInfo.setStatus("1");
         } else {
-            BigDecimal unit = NumberUtil.div(orderInfo.getTotalTime(), new BigDecimal(60), 2);
-            orderInfo.setTotalPrice(NumberUtil.mul(unit, orderInfo.getPrice()));
+            // 判断停车时长是否超过规定时长
+            BigDecimal totalTime1 = orderInfo.getTotalTime();
+            BigDecimal minuteMax = new BigDecimal(punishmentInfo.getMinuteMax());
+            if (totalTime1.compareTo(minuteMax) > 0) {
+                // 超时时长 = 总时长 - 免费时长
+                BigDecimal overtime = totalTime1.subtract(minuteMax);
+                // 超时费用 = 超时时长 * 超时单价
+                BigDecimal overtimePrice = NumberUtil.mul(overtime, new BigDecimal(punishmentInfo.getMinntePriceUnit()));
+                // 基础费用 = 免费时长对应的费用
+                BigDecimal basePrice = NumberUtil.mul(NumberUtil.div(minuteMax, new BigDecimal(60), 2), orderInfo.getPrice());
+                // 总费用 = 基础费用 + 超时费用
+                orderInfo.setTotalPrice(basePrice.add(overtimePrice));
+            } else {
+                // 未超时，按正常计费
+                orderInfo.setTotalPrice(BigDecimal.ZERO);
+                orderInfo.setStatus("1");
+            }
         }
 
         // 发送消息

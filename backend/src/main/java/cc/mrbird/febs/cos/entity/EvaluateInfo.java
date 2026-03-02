@@ -1,25 +1,23 @@
 package cc.mrbird.febs.cos.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * 停车位管理
+ * 满意度评价
  *
  * @author Fank gmail - fan1ke2ke@gmail.com
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-public class SpaceInfo implements Serializable {
+public class EvaluateInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -30,19 +28,29 @@ public class SpaceInfo implements Serializable {
     private Integer id;
 
     /**
-     * 停车位编号
+     * 评价编号
      */
     private String code;
 
     /**
-     * 名称
+     * 所属订单
      */
-    private String name;
+    private Integer orderId;
 
     /**
-     * 位置
+     * 车牌号
      */
-    private String space;
+    private String vehicleNo;
+
+    /**
+     * 所属用户
+     */
+    private Integer userId;
+
+    /**
+     * 评价内容
+     */
+    private String content;
 
     /**
      * 创建时间
@@ -50,23 +58,14 @@ public class SpaceInfo implements Serializable {
     private String createDate;
 
     /**
-     * 位置图片
+     * 评价图
      */
     private String images;
 
     /**
-     * 价格/时
+     * 评价分数
      */
-    private BigDecimal price;
-
-    /**
-     * 所属网格
-     */
-    private String area;
-
-
-    @TableField(exist = false)
-    private String status;
+    private Integer score;
 
 
 }

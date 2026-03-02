@@ -1,6 +1,5 @@
 package cc.mrbird.febs.cos.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 
@@ -12,14 +11,14 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * 停车位管理
+ * 违规记录
  *
  * @author Fank gmail - fan1ke2ke@gmail.com
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-public class SpaceInfo implements Serializable {
+public class ViolationInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -30,19 +29,34 @@ public class SpaceInfo implements Serializable {
     private Integer id;
 
     /**
-     * 停车位编号
+     * 违规编号
      */
     private String code;
 
     /**
-     * 名称
+     * 状态（0.未处理 1.已处理）
      */
-    private String name;
+    private String status;
 
     /**
-     * 位置
+     * 所属订单
      */
-    private String space;
+    private Integer orderId;
+
+    /**
+     * 车牌号
+     */
+    private String vehicleNo;
+
+    /**
+     * 所属用户
+     */
+    private Integer userId;
+
+    /**
+     * 违规内容
+     */
+    private String content;
 
     /**
      * 创建时间
@@ -50,23 +64,13 @@ public class SpaceInfo implements Serializable {
     private String createDate;
 
     /**
-     * 位置图片
+     * 处理内容
      */
+    private String fixContent;
     private String images;
 
-    /**
-     * 价格/时
-     */
-    private BigDecimal price;
-
-    /**
-     * 所属网格
-     */
-    private String area;
-
-
     @TableField(exist = false)
-    private String status;
+    private String name;
 
 
 }

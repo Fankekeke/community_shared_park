@@ -9,6 +9,7 @@
             code,
             name,
             `space`,
+            `area`,
             create_date,
             images,
             price
@@ -31,6 +32,7 @@
         si.code,
         si.name,
         si.`space`,
+        si.`area`,
         si.create_date,
         si.images,
         si.price
