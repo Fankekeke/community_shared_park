@@ -75,14 +75,14 @@
         </a-col>
       </a-row>
       <br/>
-      <a-row style="padding-left: 24px;padding-right: 24px;">
-        <a-col :span="8"><b>价格/时：</b>
-          {{ orderData.price ? (orderData.price + '元') : '- -' }}
-        </a-col>
-        <a-col :span="8"><b>总费用：</b>
-          {{ orderData.totalPrice ? (orderData.totalPrice + '元') : '- -' }}
-        </a-col>
-      </a-row>
+<!--      <a-row style="padding-left: 24px;padding-right: 24px;">-->
+<!--        <a-col :span="8"><b>价格/时：</b>-->
+<!--          {{ orderData.price ? (orderData.price + '元') : '- -' }}-->
+<!--        </a-col>-->
+<!--        <a-col :span="8"><b>停车费用：</b>-->
+<!--          {{ orderData.totalPrice ? (orderData.totalPrice + '元') : '- -' }}-->
+<!--        </a-col>-->
+<!--      </a-row>-->
       <br/>
     </div>
   </a-modal>

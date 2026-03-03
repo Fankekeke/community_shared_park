@@ -53,9 +53,10 @@
                :scroll="{ x: 900 }"
                @change="handleTableChange">
         <template slot="operation" slot-scope="text, record">
-          <a-icon v-if="record.status == 0" type="alipay" @click="pay(record)" title="支 付"></a-icon>
+          <a-icon v-if="record.status == 0 && record.totalPrice != null && record.totalPrice != 0" type="alipay" @click="pay(record)" title="支 付"></a-icon>
           <a-icon type="control" theme="twoTone" @click="download(record)" title="下 载" style="margin-left: 15px" v-if="record.status == 1"></a-icon>
           <a-icon type="file-search" @click="orderViewOpen(record)" title="详 情" style="margin-left: 15px"></a-icon>
+          <a-icon v-if="record.evaluateId == null && record.startDate != null && record.endDate != null" type="file-search" @click="orderEvaluateOpen(record)" title="评 价" style="margin-left: 15px"></a-icon>
         </template>
       </a-table>
     </div>
@@ -76,6 +77,12 @@
       :orderShow="orderView.visiable"
       :orderData="orderView.data">
     </order-view>
+    <order-evaluate
+      @close="handleorderEvaluateClose"
+      @success="handleorderEvaluateSuccess"
+      :orderShow="orderEvaluate.visiable"
+      :orderData="orderEvaluate.data">
+    </order-evaluate>
   </a-card>
 </template>
 
@@ -84,6 +91,7 @@ import RangeDate from '@/components/datetime/RangeDate'
 import orderAdd from './OrderAdd.vue'
 import orderEdit from './OrderEdit.vue'
 import orderView from './OrderView.vue'
+import orderEvaluate from './OrderEvaluate.vue'
 import {mapState} from 'vuex'
 import moment from 'moment'
 import { newSpread, fixedForm, saveExcel } from '@/utils/spreadJS'
@@ -91,7 +99,7 @@ moment.locale('zh-cn')
 
 export default {
   name: 'order',
-  components: {orderAdd, orderEdit, orderView, RangeDate},
+  components: {orderAdd, orderEdit, orderView, orderEvaluate, RangeDate},
   data () {
     return {
       advanced: false,
@@ -102,6 +110,10 @@ export default {
         visiable: false
       },
       orderView: {
+        visiable: false,
+        data: null
+      },
+      orderEvaluate: {
         visiable: false,
         data: null
       },
@@ -194,7 +206,7 @@ export default {
           }
         }
       }, {
-        title: '总费用（元）',
+        title: '停车费用（元）',
         dataIndex: 'totalPrice',
         customRender: (text, row, index) => {
           if (text !== null) {
@@ -303,6 +315,14 @@ export default {
     handleorderEditSuccess () {
       this.orderEdit.visiable = false
       this.$message.success('修改订单成功')
+      this.search()
+    },
+    handleorderEvaluateClose () {
+      this.orderEvaluate.visiable = false
+    },
+    handleorderEvaluateSuccess () {
+      this.orderEvaluate.visiable = false
+      this.$message.success('添加评价成功')
       this.search()
     },
     handleDeptChange (value) {

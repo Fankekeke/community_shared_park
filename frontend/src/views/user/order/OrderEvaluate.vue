@@ -1,5 +1,6 @@
+
 <template>
-  <a-modal v-model="show" title="新增车位" @cancel="onClose" :width="800">
+  <a-modal v-model="show" title="订单评价" @cancel="onClose" :width="500">
     <template slot="footer">
       <a-button key="back" @click="onClose">
         取消
@@ -10,28 +11,20 @@
     </template>
     <a-form :form="form" layout="vertical">
       <a-row :gutter="20">
-        <a-col :span="12">
-          <a-form-item label='车位名称' v-bind="formItemLayout">
-            <a-input v-decorator="[
-            'name',
-            { spaces: [{ required: true, message: '请输入车位名称!' }] }
-            ]"/>
-          </a-form-item>
-        </a-col>
-        <a-col :span="12">
-          <a-form-item label='所属网格' v-bind="formItemLayout">
-            <a-textarea :rows="6" v-decorator="[
-            'area',
-             { spaces: [{ required: true, message: '请输入所属网格!' }] }
-            ]"/>
+        <a-col :span="24">
+          <a-form-item label='评价分数' v-bind="formItemLayout">
+            <a-rate v-decorator="[
+              'score',
+              { rules: [{ required: true, message: '请选择评价分数!' }] }
+            ]" :allow-half="true"/>
           </a-form-item>
         </a-col>
         <a-col :span="24">
-          <a-form-item label='车位地点' v-bind="formItemLayout">
+          <a-form-item label='评价内容' v-bind="formItemLayout">
             <a-textarea :rows="6" v-decorator="[
-            'space',
-             { spaces: [{ required: true, message: '请输入车位地点!' }] }
-            ]"/>
+            'content',
+             { rules: [{ required: true, message: '请输入评价内容!' }] }
+            ]" placeholder="请输入您的评价..."/>
           </a-form-item>
         </a-col>
         <a-col :span="24">
@@ -61,8 +54,7 @@
   </a-modal>
 </template>
 
-<script>
-import {mapState} from 'vuex'
+<script>import {mapState} from 'vuex'
 function getBase64 (file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -76,10 +68,15 @@ const formItemLayout = {
   wrapperCol: { span: 24 }
 }
 export default {
-  name: 'spaceAdd',
+  name: 'OrderEvaluate',
   props: {
-    spaceAddVisiable: {
+    orderShow: {
+      type: Boolean,
       default: false
+    },
+    orderData: {
+      type: Object,
+      default: null
     }
   },
   computed: {
@@ -88,7 +85,7 @@ export default {
     }),
     show: {
       get: function () {
-        return this.spaceAddVisiable
+        return this.orderShow
       },
       set: function () {
       }
@@ -127,16 +124,16 @@ export default {
       this.$emit('close')
     },
     handleSubmit () {
-      // 获取图片List
       let images = []
       this.fileList.forEach(image => {
         images.push(image.response)
       })
       this.form.validateFields((err, values) => {
         values.images = images.length > 0 ? images.join(',') : null
+        values.orderId = this.orderData?.id
         if (!err) {
           this.loading = true
-          this.$post('/cos/space-info', {
+          this.$post('/cos/evaluate-info', {
             ...values
           }).then((r) => {
             this.reset()
@@ -152,5 +149,4 @@ export default {
 </script>
 
 <style scoped>
-
 </style>

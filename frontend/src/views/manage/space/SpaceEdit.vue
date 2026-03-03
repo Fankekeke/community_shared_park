@@ -19,10 +19,10 @@
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label='价格' v-bind="formItemLayout">
-            <a-input-number :min="1" style="width: 100%" v-decorator="[
-            'price',
-            { spaces: [{ required: true, message: '请输入价格!' }] }
+          <a-form-item label='所属网格' v-bind="formItemLayout">
+            <a-textarea :rows="6" v-decorator="[
+            'area',
+             { spaces: [{ required: true, message: '请输入所属网格!' }] }
             ]"/>
           </a-form-item>
         </a-col>
@@ -130,7 +130,7 @@ export default {
     },
     setFormValues ({...space}) {
       this.rowId = space.id
-      let fields = ['name', 'price', 'space']
+      let fields = ['name', 'price', 'space', 'area']
       let obj = {}
       Object.keys(space).forEach((key) => {
         if (key === 'images') {

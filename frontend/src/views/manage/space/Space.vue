@@ -153,16 +153,6 @@ export default {
           }
         }
       }, {
-        title: '价格/时',
-        dataIndex: 'price',
-        customRender: (text, row, index) => {
-          if (text !== null) {
-            return text + '元'
-          } else {
-            return '- -'
-          }
-        }
-      }, {
         title: '车位图片',
         dataIndex: 'images',
         customRender: (text, record, index) => {
@@ -173,6 +163,16 @@ export default {
             </template>
             <a-avatar shape="square" icon="user" src={ 'http://127.0.0.1:9527/imagesWeb/' + record.images.split(',')[0] } />
           </a-popover>
+        }
+      }, {
+        title: '所属网格',
+        dataIndex: 'area',
+        customRender: (text, row, index) => {
+          if (text !== null) {
+            return text
+          } else {
+            return '- -'
+          }
         }
       }, {
         title: '创建时间',

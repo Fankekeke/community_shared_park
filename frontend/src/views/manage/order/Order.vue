@@ -205,7 +205,7 @@ export default {
           }
         }
       }, {
-        title: '总费用（元）',
+        title: '停车费用（元）',
         dataIndex: 'totalPrice',
         customRender: (text, row, index) => {
           if (text !== null) {

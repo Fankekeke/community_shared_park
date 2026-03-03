@@ -7,18 +7,18 @@
           <div :class="advanced ? null: 'fold'">
             <a-col :md="6" :sm="24">
               <a-form-item
-                label="用户名称"
+                label="车牌号码"
                 :labelCol="{span: 5}"
                 :wrapperCol="{span: 18, offset: 1}">
-                <a-input v-model="queryParams.userName"/>
+                <a-input v-model="queryParams.vehicleNo"/>
               </a-form-item>
             </a-col>
             <a-col :md="6" :sm="24">
               <a-form-item
-                label="订单编号"
+                label="用户名称"
                 :labelCol="{span: 5}"
                 :wrapperCol="{span: 18, offset: 1}">
-                <a-input v-model="queryParams.orderCode"/>
+                <a-input v-model="queryParams.name"/>
               </a-form-item>
             </a-col>
           </div>
@@ -31,6 +31,7 @@
     </div>
     <div>
       <div class="operator">
+        <a-button type="primary" ghost @click="add">新增</a-button>
         <a-button @click="batchDelete">删除</a-button>
       </div>
       <!-- 表格区域 -->
@@ -43,43 +44,68 @@
                :rowSelection="{selectedRowKeys: selectedRowKeys, onChange: onSelectChange}"
                :scroll="{ x: 900 }"
                @change="handleTableChange">
-        <template slot="evaluateShow" slot-scope="text, record">
-          <template>
-            <a-tooltip>
-              <template slot="title">
-                {{ record.content }}
-              </template>
-              {{ record.content.slice(0, 10) }} ...
-            </a-tooltip>
-          </template>
-        </template>
         <template slot="operation" slot-scope="text, record">
-          <a-icon type="file-search" @click="orderViewOpen(record)" title="详 情"></a-icon>
+          <a-icon type="file-search" @click="userViewOpen(record)" title="详 情"></a-icon>
+<!--          <a-icon v-if="record.status == 0" type="alert" theme="twoTone" @click="userViewEdit(record)" title="处 理" style="margin-left: 15px"></a-icon>-->
         </template>
       </a-table>
     </div>
+    <user-view
+      @close="handleuserViewClose"
+      :userShow="userView.visiable"
+      :userData="userView.data">
+    </user-view>
+    <user-edit
+      @close="handleuserEditClose"
+      @success="handleuserEditSuccess"
+      :userShow="userEdit.visiable"
+      :userData="userEdit.data">
+    </user-edit>
+    <user-add
+      v-if="bulletinAdd.visiable"
+      @close="handleBulletinAddClose"
+      @success="handleBulletinAddSuccess"
+      :bulletinAddVisiable="bulletinAdd.visiable">
+    </user-add>
   </a-card>
 </template>
 
 <script>
 import RangeDate from '@/components/datetime/RangeDate'
+import userView from './ViolationView.vue'
+import UserAdd from './ViolationAdd.vue'
+import UserEdit from './ViolationEdit.vue'
 import {mapState} from 'vuex'
 import moment from 'moment'
 moment.locale('zh-cn')
-
+function getBase64 (file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = error => reject(error)
+  })
+}
 export default {
-  name: 'evaluate',
-  components: {RangeDate},
+  name: 'user',
+  components: {userView, UserAdd, UserEdit, RangeDate},
   data () {
     return {
+      bulletinAdd: {
+        visiable: false
+      },
+      faceView: {
+        visiable: false,
+        data: null
+      },
       advanced: false,
-      evaluateAdd: {
+      userAdd: {
         visiable: false
       },
-      evaluateEdit: {
+      userEdit: {
         visiable: false
       },
-      orderView: {
+      userView: {
         visiable: false,
         data: null
       },
@@ -98,6 +124,9 @@ export default {
         showSizeChanger: true,
         showTotal: (total, range) => `显示 ${range[0]} ~ ${range[1]} 条记录，共 ${total} 条记录`
       },
+      fileList: [],
+      previewVisible: false,
+      previewImage: '',
       userList: []
     }
   },
@@ -106,42 +135,9 @@ export default {
       currentUser: state => state.account.user
     }),
     columns () {
-      return [{
-        title: '评价用户',
-        dataIndex: 'name',
-        customRender: (text, row, index) => {
-          if (text !== null) {
-            return text
-          } else {
-            return '- -'
-          }
-        },
-        ellipsis: true
-      }, {
-        title: '用户头像',
-        dataIndex: 'images',
-        customRender: (text, record, index) => {
-          if (!record.images) return <a-avatar shape="square" icon="user" />
-          return <a-popover>
-            <template slot="content">
-              <a-avatar shape="square" size={132} icon="user" src={ 'http://127.0.0.1:9527/imagesWeb/' + record.images.split(',')[0] } />
-            </template>
-            <a-avatar shape="square" icon="user" src={ 'http://127.0.0.1:9527/imagesWeb/' + record.images.split(',')[0] } />
-          </a-popover>
-        }
-      }, {
-        title: '联系方式',
-        dataIndex: 'phone',
-        customRender: (text, row, index) => {
-          if (text !== null) {
-            return text
-          } else {
-            return '- -'
-          }
-        },
-        ellipsis: true
-      }, {
-        title: '订单编号',
+      return [ {
+        title: '违规编号',
+        ellipsis: true,
         dataIndex: 'code',
         customRender: (text, row, index) => {
           if (text !== null) {
@@ -149,25 +145,33 @@ export default {
           } else {
             return '- -'
           }
-        },
-        ellipsis: true
+        }
       }, {
-        title: '评价得分',
-        dataIndex: 'score',
+        title: '车牌号',
+        dataIndex: 'vehicleNo',
+        ellipsis: true,
         customRender: (text, row, index) => {
           if (text !== null) {
-            return text + '分'
+            return text
           } else {
             return '- -'
           }
         }
       }, {
-        title: '评价内容',
-        dataIndex: 'content',
-        scopedSlots: {customRender: 'evaluateShow'},
-        ellipsis: true
+        title: '处理状态',
+        dataIndex: 'status',
+        customRender: (text, row, index) => {
+          switch (text) {
+            case '0':
+              return <a-tag color="#f50">未处理</a-tag>
+            case '1':
+              return <a-tag color="#87d068">已处理</a-tag>
+            default:
+              return '- -'
+          }
+        }
       }, {
-        title: '评价图片',
+        title: '图片',
         dataIndex: 'images',
         customRender: (text, record, index) => {
           if (!record.images) return <a-avatar shape="square" icon="user" />
@@ -179,16 +183,41 @@ export default {
           </a-popover>
         }
       }, {
-        title: '评价时间',
-        dataIndex: 'createDate',
+        title: '所属用户',
+        dataIndex: 'name',
         customRender: (text, row, index) => {
           if (text !== null) {
             return text
           } else {
             return '- -'
           }
-        },
-        ellipsis: true
+        }
+      }, {
+        title: '违规内容',
+        dataIndex: 'content',
+        ellipsis: true,
+        customRender: (text, row, index) => {
+          if (text !== null) {
+            return text
+          } else {
+            return '- -'
+          }
+        }
+      }, {
+        title: '创建时间',
+        dataIndex: 'createDate',
+        ellipsis: true,
+        customRender: (text, row, index) => {
+          if (text !== null) {
+            return text
+          } else {
+            return '- -'
+          }
+        }
+      }, {
+        title: '操作',
+        dataIndex: 'operation',
+        scopedSlots: {customRender: 'operation'}
       }]
     }
   },
@@ -196,12 +225,44 @@ export default {
     this.fetch()
   },
   methods: {
-    orderViewOpen (row) {
-      this.orderView.data = row
-      this.orderView.visiable = true
+    add () {
+      this.bulletinAdd.visiable = true
     },
-    handleorderViewClose () {
-      this.orderView.visiable = false
+    handleBulletinAddClose () {
+      this.bulletinAdd.visiable = false
+    },
+    handleBulletinAddSuccess () {
+      this.bulletinAdd.visiable = false
+      this.$message.success('新增违规成功')
+      this.search()
+    },
+    handleCancel () {
+      this.previewVisible = false
+    },
+    async handlePreview (file) {
+      if (!file.url && !file.preview) {
+        file.preview = await getBase64(file.originFileObj)
+      }
+      this.previewImage = file.url || file.preview
+      this.previewVisible = true
+    },
+    picHandleChange (info) {
+      console.log(info.file.response)
+      if (info.file.response !== undefined && info.file.response.msg !== undefined) {
+        if (info.file.response.msg === 'success') {
+          this.$message.success('添加照片成功')
+          this.faceView.visiable = false
+          this.fetch()
+        } else {
+          this.$message.error(info.file.response.msg)
+        }
+      }
+      this.fileList = info.fileList
+    },
+    face (row) {
+      this.fileList = []
+      this.faceView.visiable = true
+      this.faceView.data = row
     },
     onSelectChange (selectedRowKeys) {
       this.selectedRowKeys = selectedRowKeys
@@ -209,27 +270,35 @@ export default {
     toggleAdvanced () {
       this.advanced = !this.advanced
     },
-    add () {
-      this.evaluateAdd.visiable = true
+    handleuserAddClose () {
+      this.userAdd.visiable = false
     },
-    handleevaluateAddClose () {
-      this.evaluateAdd.visiable = false
-    },
-    handleevaluateAddSuccess () {
-      this.evaluateAdd.visiable = false
-      this.$message.success('新增评价成功')
+    handleuserAddSuccess () {
+      this.userAdd.visiable = false
+      this.$message.success('新增会员成功')
       this.search()
     },
     edit (record) {
-      this.$refs.evaluateEdit.setFormValues(record)
-      this.evaluateEdit.visiable = true
+      this.$refs.userEdit.setFormValues(record)
+      this.userEdit.visiable = true
     },
-    handleevaluateEditClose () {
-      this.evaluateEdit.visiable = false
+    userViewEdit (row) {
+      this.userEdit.data = row
+      this.userEdit.visiable = true
     },
-    handleevaluateEditSuccess () {
-      this.evaluateEdit.visiable = false
-      this.$message.success('修改评价成功')
+    userViewOpen (row) {
+      this.userView.data = row
+      this.userView.visiable = true
+    },
+    handleuserViewClose () {
+      this.userView.visiable = false
+    },
+    handleuserEditClose () {
+      this.userEdit.visiable = false
+    },
+    handleuserEditSuccess () {
+      this.userEdit.visiable = false
+      this.$message.success('修改成功')
       this.search()
     },
     handleDeptChange (value) {
@@ -247,7 +316,7 @@ export default {
         centered: true,
         onOk () {
           let ids = that.selectedRowKeys.join(',')
-          that.$delete('/cos/evaluate-info/' + ids).then(() => {
+          that.$delete('/cos/violation-info/' + ids).then(() => {
             that.$message.success('删除成功')
             that.selectedRowKeys = []
             that.search()
@@ -317,11 +386,12 @@ export default {
         params.size = this.pagination.defaultPageSize
         params.current = this.pagination.defaultCurrent
       }
-      if (params.type === undefined) {
-        delete params.type
+      if (params.delFlag === undefined) {
+        delete params.delFlag
       }
+      params.type = 3
       params.userId = this.currentUser.userId
-      this.$get('/cos/evaluate-info/page', {
+      this.$get('/cos/violation-info/page', {
         ...params
       }).then((r) => {
         let data = r.data.data

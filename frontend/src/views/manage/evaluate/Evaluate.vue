@@ -320,7 +320,6 @@ export default {
       if (params.type === undefined) {
         delete params.type
       }
-      params.userId = this.currentUser.userId
       this.$get('/cos/evaluate-info/page', {
         ...params
       }).then((r) => {
